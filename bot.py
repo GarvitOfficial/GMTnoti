@@ -408,35 +408,17 @@ def main() -> None:
         application.job_queue.run_once(broadcast_reminders, 0, application)
         logger.info("Broadcast loop started")
 
-        # Check if we're running in Vercel (production)
-        if os.getenv('VERCEL'):
-            # Use webhooks in production
-            WEBHOOK_URL = os.getenv('VERCEL_URL', '')
-            if WEBHOOK_URL:
-                WEBHOOK_URL = f"https://{WEBHOOK_URL}/webhook"
-                application.run_webhook(
-                    listen="0.0.0.0",
-                    port=int(os.getenv('PORT', 8080)),
-                    webhook_url=WEBHOOK_URL,
-                    drop_pending_updates=True
-                )
-        else:
-            # Use polling in development
-            logger.info("Starting polling...")
-            application.run_polling(
-                allowed_updates=[Update.MESSAGE],
-                drop_pending_updates=True,
-                pool_timeout=10.0
-            )
+        # Start the bot with specific allowed updates
+        logger.info("Starting polling...")
+        application.run_polling(
+            allowed_updates=[Update.MESSAGE],
+            drop_pending_updates=True,
+            pool_timeout=10.0
+        )
 
     except Exception as e:
         logger.error(f"Critical error: {str(e)}", exc_info=True)
         raise
 
-# Make the application available to web_server.py
-application = None
-def get_application():
-    global application
-    if application is None:
-        application = main()
-    return application
+if __name__ == '__main__':
+    main()
