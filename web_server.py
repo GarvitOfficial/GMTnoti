@@ -7,8 +7,8 @@ from functools import wraps
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-# Change DATABASE_PATH to use /tmp for Vercel compatibility
-DATABASE_PATH = '/tmp/reminders.db'
+# Change DATABASE_PATH to match bot.py
+DATABASE_PATH = 'data/reminders.db'
 
 # Load environment variables
 load_dotenv('config/.env')
@@ -20,6 +20,43 @@ if not os.getenv('WEB_USERNAME') or not os.getenv('WEB_PASSWORD'):
 # Set up the IST time zone
 IST = pytz.timezone('Asia/Kolkata')
 
+# Create database directory if it doesn't exist
+os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+
+def init_db():
+    """Initialize database with required tables"""
+    db = sqlite3.connect(DATABASE_PATH)
+    cursor = db.cursor()
+    
+    # Create users table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            category TEXT CHECK(category IN ('foundation', 'diploma', 'bsc', 'bs')),
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create reminders table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time TEXT NOT NULL,
+            date TEXT NOT NULL,
+            message TEXT NOT NULL,
+            categories TEXT NOT NULL DEFAULT 'all',
+            last_sent TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    db.commit()
+    db.close()
+
+# Initialize database on startup
+init_db()
+
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
@@ -27,7 +64,6 @@ def dict_factory(cursor, row):
     return d
 
 def get_db():
-    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     db = sqlite3.connect(DATABASE_PATH)
     db.row_factory = dict_factory
     return db
@@ -79,34 +115,47 @@ def get_reminders():
 @app.route('/api/reminders', methods=['POST'])
 @requires_auth
 def add_reminder():
-    data = request.json
-    
-    if not all(key in data for key in ['date', 'time', 'message', 'categories']):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
     try:
-        # Validate date and time format
-        datetime.strptime(f"{data['date']} {data['time']}", '%d/%m/%Y %H:%M')
+        data = request.json
         
-        # Validate categories
-        categories = data['categories'].split(',')
-        valid_categories = {'all', 'foundation', 'diploma', 'bsc', 'bs'}
-        if not all(cat.strip() in valid_categories for cat in categories):
-            return jsonify({'error': 'Invalid categories'}), 400
+        if not all(key in data for key in ['date', 'time', 'message', 'categories']):
+            print(f"Missing fields in data: {data}")
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        try:
+            # Validate date and time format
+            datetime.strptime(f"{data['date']} {data['time']}", '%d/%m/%Y %H:%M')
             
-    except ValueError:
-        return jsonify({'error': 'Invalid date or time format'}), 400
+            # Validate categories
+            categories = data['categories'].split(',')
+            valid_categories = {'all', 'foundation', 'diploma', 'bsc', 'bs'}
+            if not all(cat.strip() in valid_categories for cat in categories):
+                print(f"Invalid categories: {categories}")
+                return jsonify({'error': 'Invalid categories'}), 400
+                
+        except ValueError as e:
+            print(f"Date/time validation error: {str(e)}")
+            return jsonify({'error': 'Invalid date or time format'}), 400
 
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
-        'INSERT INTO reminders (date, time, message, categories) VALUES (?, ?, ?, ?)',
-        (data['date'], data['time'], data['message'], data['categories'])
-    )
-    db.commit()
-    db.close()
-    
-    return jsonify({'message': 'Reminder added successfully'}), 201
+        db = get_db()
+        cursor = db.cursor()
+        try:
+            cursor.execute(
+                'INSERT INTO reminders (date, time, message, categories) VALUES (?, ?, ?, ?)',
+                (data['date'], data['time'], data['message'], data['categories'])
+            )
+            db.commit()
+            print(f"Successfully added reminder: {data}")
+        except sqlite3.Error as e:
+            print(f"Database error: {str(e)}")
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        finally:
+            db.close()
+        
+        return jsonify({'message': 'Reminder added successfully'}), 201
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/reminders/<int:reminder_id>', methods=['DELETE'])
 @requires_auth
@@ -144,8 +193,8 @@ def get_stats():
     })
 
 if __name__ == '__main__':
-    # For production and development
-    app.run(host='0.0.0.0', port=5002, debug=False)
+    # For local development
+    app.run(port=5002, debug=True)
 else:
     # For Vercel deployment
     app = app
