@@ -1,12 +1,21 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import sqlite3
 import os
 from datetime import datetime
 import pytz
+from functools import wraps
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 # Change DATABASE_PATH to use /tmp for Vercel compatibility
 DATABASE_PATH = '/tmp/reminders.db'
+
+# Load environment variables
+load_dotenv('config/.env')
+
+# Check if required environment variables are set
+if not os.getenv('WEB_USERNAME') or not os.getenv('WEB_PASSWORD'):
+    raise ValueError("WEB_USERNAME and WEB_PASSWORD must be set in config/.env")
 
 # Set up the IST time zone
 IST = pytz.timezone('Asia/Kolkata')
@@ -23,11 +32,36 @@ def get_db():
     db.row_factory = dict_factory
     return db
 
+def check_auth(username, password):
+    """Check if username and password match the ones in .env file"""
+    correct_username = os.getenv('WEB_USERNAME')
+    correct_password = os.getenv('WEB_PASSWORD')
+    return username == correct_username and password == correct_password
+
+def authenticate():
+    """Send 401 response that enables basic auth"""
+    return Response(
+        'Authentication required.\n',
+        401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'}
+    )
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/')
+@requires_auth
 def index():
     return render_template('index.html')
 
 @app.route('/api/reminders', methods=['GET'])
+@requires_auth
 def get_reminders():
     db = get_db()
     cursor = db.cursor()
@@ -43,6 +77,7 @@ def get_reminders():
     return jsonify(reminders)
 
 @app.route('/api/reminders', methods=['POST'])
+@requires_auth
 def add_reminder():
     data = request.json
     
@@ -74,6 +109,7 @@ def add_reminder():
     return jsonify({'message': 'Reminder added successfully'}), 201
 
 @app.route('/api/reminders/<int:reminder_id>', methods=['DELETE'])
+@requires_auth
 def delete_reminder(reminder_id):
     db = get_db()
     cursor = db.cursor()
@@ -83,6 +119,7 @@ def delete_reminder(reminder_id):
     return '', 204
 
 @app.route('/api/stats', methods=['GET'])
+@requires_auth
 def get_stats():
     db = get_db()
     cursor = db.cursor()
