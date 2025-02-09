@@ -1,0 +1,82 @@
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.list-group-item {
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #0d6efd;
+}
+
+.delete-reminder {
+    cursor: pointer;
+    color: #dc3545;
+}
+
+.delete-reminder:hover {
+    color: #c82333;
+}
+
+.reminder-time {
+    color: #6c757d;
+    font-size: 0.9em;
+    margin-bottom: 0.5rem;
+}
+
+.reminder-message {
+    margin: 0.5rem 0;
+    color: #212529;
+    font-size: 1.1em;
+}
+
+.reminder-categories {
+    margin-top: 0.5rem;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+    margin-right: 0.4em;
+    text-transform: uppercase;
+}
+
+.btn-group {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.btn-group .btn {
+    flex: 1;
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+}
+
+#specificCategories {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    border-left: 3px solid #e9ecef;
+}
+
+.category-checkbox:checked + .form-check-label {
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem !important;
+    }
+}
