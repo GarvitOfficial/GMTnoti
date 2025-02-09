@@ -3,6 +3,8 @@ import sqlite3
 import os
 from datetime import datetime
 import pytz
+from telegram import Update
+from telegram.ext import ApplicationBuilder
 
 app = Flask(__name__)
 # Change DATABASE_PATH to use /tmp for Vercel compatibility
@@ -105,6 +107,14 @@ def get_stats():
         'user_stats': user_stats,
         'total_reminders': reminder_count
     })
+
+# Add webhook route for Telegram
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.method == 'POST':
+        update = Update.de_json(request.get_json(force=True), bot.application.bot)
+        bot.application.process_update(update)
+        return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
     # For local development
