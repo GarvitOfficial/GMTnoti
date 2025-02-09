@@ -17,7 +17,7 @@ A Telegram-based notification system with a web interface for managing academic 
 - **Database**: SQLite3
 - **Bot Framework**: python-telegram-bot
 - **Frontend**: HTML, CSS, JavaScript
-- **Deployment**: DigitalOcean
+
 
 ## Setup Guide 🚀
 
