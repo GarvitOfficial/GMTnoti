@@ -41,7 +41,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install all required packages
-pip install python-telegram-bot==20.7
+pip install "python-telegram-bot[callback-data]"==20.7
 pip install python-dotenv==1.0.0
 pip install pytz==2023.3
 pip install Flask==3.0.0
