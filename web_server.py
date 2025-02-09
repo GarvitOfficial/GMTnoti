@@ -193,8 +193,8 @@ def get_stats():
     })
 
 if __name__ == '__main__':
-    # For local development
-    app.run(port=5002, debug=True)
+    # For production deployment
+    app.run(host='0.0.0.0', port=5002, debug=False)
 else:
     # For Vercel deployment
     app = app
