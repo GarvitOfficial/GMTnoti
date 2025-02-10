@@ -239,9 +239,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 "/support - Show ways to support us"
             )
         else:
+            # Add user with default category 'bs'
+            db.add_user(user.id, user.username, 'bs')
+            logger.info(f"Added new user {user.id} ({user.username}) with default category 'bs'")
+            
             message = (
                 "👋 Welcome to the *Reminder Bot*! 🎉\n\n"
-                "*Please select your category*\n"
+                "You've been registered with default category *BS*.\n\n"
+                "*Change your category*\n"
                 "/foundation - Foundation student\n"
                 "/diploma - Diploma student\n"
                 "/bsc - BSc student\n"
